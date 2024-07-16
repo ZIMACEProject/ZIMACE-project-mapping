@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>ZIMACE Projects (July 2024)</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/ZIMACEWorkstream4Projects_1.js"></script>
+        <script src="data/ZIMACEWorkstream3Projects_2.js"></script>
+        <script src="data/ZIMACEWorkstream2Projects_3.js"></script>
+        <script src="data/ZIMACEWorkstream1Projects_4.js"></script>
+        <script src="data/AllZIMACEProjects_5.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#e31a1c',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#e31a1c',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-23.668837755978654,22.42132471991999],[-14.884228333140083,36.85779682289367]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>ZIMACE Projects (July 2024)</h2>';
+        };
+        title.addTo(map);
+        var abstract = new L.Control({'position':'bottomleft'});
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div',
+            'leaflet-control abstract');
+            this._div.id = 'abstract'
+
+                abstract.show();
+                return this._div;
+            };
+            abstract.show = function () {
+                this._div.classList.remove("abstract");
+                this._div.classList.add("abstractUncollapsed");
+                this._div.innerHTML = 'This is a web map showing geographical distribution of ZIMACE interventions covering all the four priority workstreams as of July 2024.';
+        };
+        abstract.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_GoogleTerrain_0');
+        map.getPane('pane_GoogleTerrain_0').style.zIndex = 400;
+        var layer_GoogleTerrain_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleTerrain_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.google.at/permissions/geoguidelines/attr-guide.html">Map data ©2015 Google</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_GoogleTerrain_0;
+        map.addLayer(layer_GoogleTerrain_0);
+        function pop_ZIMACEWorkstream4Projects_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td>' + (feature.properties['ADM2_EN'] !== null ? autolinker.link(feature.properties['ADM2_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Province</th>\
+                        <td>' + (feature.properties['ADM1_EN'] !== null ? autolinker.link(feature.properties['ADM1_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Grantees for Workstream 4</th>\
+                        <td class="visible-with-data" id="Workstream 4">' + (feature.properties['Workstream 4'] !== null ? autolinker.link(feature.properties['Workstream 4'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_ZIMACEWorkstream4Projects_1_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_ZIMACEWorkstream4Projects_1rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream4Projects_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            };
+                }
+                else if (exp_ZIMACEWorkstream4Projects_1rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream4Projects_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(227,151,234,1.0)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_ZIMACEWorkstream4Projects_1');
+        map.getPane('pane_ZIMACEWorkstream4Projects_1').style.zIndex = 401;
+        map.getPane('pane_ZIMACEWorkstream4Projects_1').style['mix-blend-mode'] = 'normal';
+        var layer_ZIMACEWorkstream4Projects_1 = new L.geoJson(json_ZIMACEWorkstream4Projects_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ZIMACEWorkstream4Projects_1',
+            layerName: 'layer_ZIMACEWorkstream4Projects_1',
+            pane: 'pane_ZIMACEWorkstream4Projects_1',
+            onEachFeature: pop_ZIMACEWorkstream4Projects_1,
+            style: style_ZIMACEWorkstream4Projects_1_0,
+        });
+        bounds_group.addLayer(layer_ZIMACEWorkstream4Projects_1);
+        function pop_ZIMACEWorkstream3Projects_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td>' + (feature.properties['ADM2_EN'] !== null ? autolinker.link(feature.properties['ADM2_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Province</th>\
+                        <td>' + (feature.properties['ADM1_EN'] !== null ? autolinker.link(feature.properties['ADM1_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Grantees for Workstream 3</th>\
+                        <td class="visible-with-data" id="Workstream 3">' + (feature.properties['Workstream 3'] !== null ? autolinker.link(feature.properties['Workstream 3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_ZIMACEWorkstream3Projects_2_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_ZIMACEWorkstream3Projects_2rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream3Projects_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            };
+                }
+                else if (exp_ZIMACEWorkstream3Projects_2rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream3Projects_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(227,151,234,1.0)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_ZIMACEWorkstream3Projects_2');
+        map.getPane('pane_ZIMACEWorkstream3Projects_2').style.zIndex = 402;
+        map.getPane('pane_ZIMACEWorkstream3Projects_2').style['mix-blend-mode'] = 'normal';
+        var layer_ZIMACEWorkstream3Projects_2 = new L.geoJson(json_ZIMACEWorkstream3Projects_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ZIMACEWorkstream3Projects_2',
+            layerName: 'layer_ZIMACEWorkstream3Projects_2',
+            pane: 'pane_ZIMACEWorkstream3Projects_2',
+            onEachFeature: pop_ZIMACEWorkstream3Projects_2,
+            style: style_ZIMACEWorkstream3Projects_2_0,
+        });
+        bounds_group.addLayer(layer_ZIMACEWorkstream3Projects_2);
+        function pop_ZIMACEWorkstream2Projects_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td>' + (feature.properties['ADM2_EN'] !== null ? autolinker.link(feature.properties['ADM2_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Province</th>\
+                        <td>' + (feature.properties['ADM1_EN'] !== null ? autolinker.link(feature.properties['ADM1_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Grantees for Workstream 2</th>\
+                        <td class="visible-with-data" id="Workstream 2">' + (feature.properties['Workstream 2'] !== null ? autolinker.link(feature.properties['Workstream 2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_ZIMACEWorkstream2Projects_3_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_ZIMACEWorkstream2Projects_3rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream2Projects_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            };
+                }
+                else if (exp_ZIMACEWorkstream2Projects_3rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream2Projects_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(42,13,190,1.0)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_ZIMACEWorkstream2Projects_3');
+        map.getPane('pane_ZIMACEWorkstream2Projects_3').style.zIndex = 403;
+        map.getPane('pane_ZIMACEWorkstream2Projects_3').style['mix-blend-mode'] = 'normal';
+        var layer_ZIMACEWorkstream2Projects_3 = new L.geoJson(json_ZIMACEWorkstream2Projects_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ZIMACEWorkstream2Projects_3',
+            layerName: 'layer_ZIMACEWorkstream2Projects_3',
+            pane: 'pane_ZIMACEWorkstream2Projects_3',
+            onEachFeature: pop_ZIMACEWorkstream2Projects_3,
+            style: style_ZIMACEWorkstream2Projects_3_0,
+        });
+        bounds_group.addLayer(layer_ZIMACEWorkstream2Projects_3);
+        function pop_ZIMACEWorkstream1Projects_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td>' + (feature.properties['ADM2_EN'] !== null ? autolinker.link(feature.properties['ADM2_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Province</th>\
+                        <td>' + (feature.properties['ADM1_EN'] !== null ? autolinker.link(feature.properties['ADM1_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Grantees for Workstream 1</th>\
+                        <td class="visible-with-data" id="Workstream 1">' + (feature.properties['Workstream 1'] !== null ? autolinker.link(feature.properties['Workstream 1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_ZIMACEWorkstream1Projects_4_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_ZIMACEWorkstream1Projects_4rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream1Projects_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            };
+                }
+                else if (exp_ZIMACEWorkstream1Projects_4rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_ZIMACEWorkstream1Projects_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(145,82,45,1.0)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_ZIMACEWorkstream1Projects_4');
+        map.getPane('pane_ZIMACEWorkstream1Projects_4').style.zIndex = 404;
+        map.getPane('pane_ZIMACEWorkstream1Projects_4').style['mix-blend-mode'] = 'normal';
+        var layer_ZIMACEWorkstream1Projects_4 = new L.geoJson(json_ZIMACEWorkstream1Projects_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ZIMACEWorkstream1Projects_4',
+            layerName: 'layer_ZIMACEWorkstream1Projects_4',
+            pane: 'pane_ZIMACEWorkstream1Projects_4',
+            onEachFeature: pop_ZIMACEWorkstream1Projects_4,
+            style: style_ZIMACEWorkstream1Projects_4_0,
+        });
+        bounds_group.addLayer(layer_ZIMACEWorkstream1Projects_4);
+        function pop_AllZIMACEProjects_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td>' + (feature.properties['ADM2_EN'] !== null ? autolinker.link(feature.properties['ADM2_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Province</th>\
+                        <td>' + (feature.properties['ADM1_EN'] !== null ? autolinker.link(feature.properties['ADM1_EN'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Workstreams</th>\
+                        <td class="visible-with-data" id="All Worktreams">' + (feature.properties['All Worktreams'] !== null ? autolinker.link(feature.properties['All Worktreams'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Grantees in District</th>\
+                        <td class="visible-with-data" id="Grantee">' + (feature.properties['Grantee'] !== null ? autolinker.link(feature.properties['Grantee'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_AllZIMACEProjects_5_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_AllZIMACEProjects_5rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_AllZIMACEProjects_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: true,
+            };
+                }
+                else if (exp_AllZIMACEProjects_5rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_AllZIMACEProjects_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,127,0,1.0)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_AllZIMACEProjects_5');
+        map.getPane('pane_AllZIMACEProjects_5').style.zIndex = 405;
+        map.getPane('pane_AllZIMACEProjects_5').style['mix-blend-mode'] = 'normal';
+        var layer_AllZIMACEProjects_5 = new L.geoJson(json_AllZIMACEProjects_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_AllZIMACEProjects_5',
+            layerName: 'layer_AllZIMACEProjects_5',
+            pane: 'pane_AllZIMACEProjects_5',
+            onEachFeature: pop_AllZIMACEProjects_5,
+            style: style_AllZIMACEProjects_5_0,
+        });
+        bounds_group.addLayer(layer_AllZIMACEProjects_5);
+        map.addLayer(layer_AllZIMACEProjects_5);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        var overlaysTree = [
+            {label: 'All ZIMACE Projects<br /><table><tr><td style="text-align: center;"><img src="legend/AllZIMACEProjects_5_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/AllZIMACEProjects_5_1.png" /></td><td></td></tr></table>', layer: layer_AllZIMACEProjects_5},
+            {label: 'ZIMACE Workstream 1 Projects<br /><table><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream1Projects_4_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream1Projects_4_1.png" /></td><td></td></tr></table>', layer: layer_ZIMACEWorkstream1Projects_4},
+            {label: 'ZIMACE Workstream 2 Projects<br /><table><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream2Projects_3_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream2Projects_3_1.png" /></td><td></td></tr></table>', layer: layer_ZIMACEWorkstream2Projects_3},
+            {label: 'ZIMACE Workstream 3 Projects<br /><table><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream3Projects_2_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream3Projects_2_1.png" /></td><td></td></tr></table>', layer: layer_ZIMACEWorkstream3Projects_2},
+            {label: 'ZIMACE Workstream 4 Projects<br /><table><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream4Projects_1_0.png" /></td><td></td></tr><tr><td style="text-align: center;"><img src="legend/ZIMACEWorkstream4Projects_1_1.png" /></td><td></td></tr></table>', layer: layer_ZIMACEWorkstream4Projects_1},
+            {label: "Google Terrain", layer: layer_GoogleTerrain_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"ADM1_EN": "str","ADM2_EN": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_ADM1_EN = document.createElement('div');
+            div_ADM1_EN.id = "div_ADM1_EN";
+            div_ADM1_EN.className= "filterselect";
+            document.getElementById("menu").appendChild(div_ADM1_EN);
+            sel_ADM1_EN = document.createElement('select');
+            sel_ADM1_EN.multiple = true;
+            sel_ADM1_EN.size = 10;
+            sel_ADM1_EN.id = "sel_ADM1_EN";
+            var ADM1_EN_options_str = "<option value='' unselected></option>";
+            sel_ADM1_EN.onchange = function(){filterFunc()};
+            ADM1_EN_options_str  += '<option value="Bulawayo">Bulawayo</option>';
+            ADM1_EN_options_str  += '<option value="Harare">Harare</option>';
+            ADM1_EN_options_str  += '<option value="Manicaland">Manicaland</option>';
+            ADM1_EN_options_str  += '<option value="Mashonaland Central">Mashonaland Central</option>';
+            ADM1_EN_options_str  += '<option value="Mashonaland East">Mashonaland East</option>';
+            ADM1_EN_options_str  += '<option value="Mashonaland West">Mashonaland West</option>';
+            ADM1_EN_options_str  += '<option value="Masvingo">Masvingo</option>';
+            ADM1_EN_options_str  += '<option value="Matabeleland North">Matabeleland North</option>';
+            ADM1_EN_options_str  += '<option value="Matabeleland South">Matabeleland South</option>';
+            ADM1_EN_options_str  += '<option value="Midlands">Midlands</option>';
+            sel_ADM1_EN.innerHTML = ADM1_EN_options_str;
+            div_ADM1_EN.appendChild(sel_ADM1_EN);
+            var lab_ADM1_EN = document.createElement('div');
+            lab_ADM1_EN.innerHTML = 'ADM1_EN';
+            lab_ADM1_EN.className = 'filterlabel';
+            div_ADM1_EN.appendChild(lab_ADM1_EN);
+            var reset_ADM1_EN = document.createElement('div');
+            reset_ADM1_EN.innerHTML = 'clear filter';
+            reset_ADM1_EN.className = 'filterlabel';
+            reset_ADM1_EN.onclick = function() {
+                var options = document.getElementById("sel_ADM1_EN").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_ADM1_EN.appendChild(reset_ADM1_EN);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_ADM2_EN = document.createElement('div');
+            div_ADM2_EN.id = "div_ADM2_EN";
+            div_ADM2_EN.className= "filterselect";
+            document.getElementById("menu").appendChild(div_ADM2_EN);
+            sel_ADM2_EN = document.createElement('select');
+            sel_ADM2_EN.multiple = true;
+            sel_ADM2_EN.size = 10;
+            sel_ADM2_EN.id = "sel_ADM2_EN";
+            var ADM2_EN_options_str = "<option value='' unselected></option>";
+            sel_ADM2_EN.onchange = function(){filterFunc()};
+            ADM2_EN_options_str  += '<option value="Beitbridge">Beitbridge</option>';
+            ADM2_EN_options_str  += '<option value="Beitbridge Urban">Beitbridge Urban</option>';
+            ADM2_EN_options_str  += '<option value="Bikita">Bikita</option>';
+            ADM2_EN_options_str  += '<option value="Bindura">Bindura</option>';
+            ADM2_EN_options_str  += '<option value="Bindura Urban">Bindura Urban</option>';
+            ADM2_EN_options_str  += '<option value="Binga">Binga</option>';
+            ADM2_EN_options_str  += '<option value="Bubi">Bubi</option>';
+            ADM2_EN_options_str  += '<option value="Buhera">Buhera</option>';
+            ADM2_EN_options_str  += '<option value="Bulawayo">Bulawayo</option>';
+            ADM2_EN_options_str  += '<option value="Bulilima">Bulilima</option>';
+            ADM2_EN_options_str  += '<option value="Centenary/ Muzarabani">Centenary/ Muzarabani</option>';
+            ADM2_EN_options_str  += '<option value="Chegutu">Chegutu</option>';
+            ADM2_EN_options_str  += '<option value="Chegutu Urban">Chegutu Urban</option>';
+            ADM2_EN_options_str  += '<option value="Chikomba">Chikomba</option>';
+            ADM2_EN_options_str  += '<option value="Chimanimani">Chimanimani</option>';
+            ADM2_EN_options_str  += '<option value="Chinhoyi">Chinhoyi</option>';
+            ADM2_EN_options_str  += '<option value="Chipinge">Chipinge</option>';
+            ADM2_EN_options_str  += '<option value="Chipinge Urban">Chipinge Urban</option>';
+            ADM2_EN_options_str  += '<option value="Chiredzi">Chiredzi</option>';
+            ADM2_EN_options_str  += '<option value="Chiredzi Urban">Chiredzi Urban</option>';
+            ADM2_EN_options_str  += '<option value="Chirumhanzu">Chirumhanzu</option>';
+            ADM2_EN_options_str  += '<option value="Chitungwiza">Chitungwiza</option>';
+            ADM2_EN_options_str  += '<option value="Chivi">Chivi</option>';
+            ADM2_EN_options_str  += '<option value="Epworth">Epworth</option>';
+            ADM2_EN_options_str  += '<option value="Gokwe North">Gokwe North</option>';
+            ADM2_EN_options_str  += '<option value="Gokwe South">Gokwe South</option>';
+            ADM2_EN_options_str  += '<option value="Gokwe South Urban">Gokwe South Urban</option>';
+            ADM2_EN_options_str  += '<option value="Goromonzi">Goromonzi</option>';
+            ADM2_EN_options_str  += '<option value="Guruve">Guruve</option>';
+            ADM2_EN_options_str  += '<option value="Gutu">Gutu</option>';
+            ADM2_EN_options_str  += '<option value="Gwanda">Gwanda</option>';
+            ADM2_EN_options_str  += '<option value="Gwanda Urban">Gwanda Urban</option>';
+            ADM2_EN_options_str  += '<option value="Gweru">Gweru</option>';
+            ADM2_EN_options_str  += '<option value="Gweru Urban">Gweru Urban</option>';
+            ADM2_EN_options_str  += '<option value="Harare">Harare</option>';
+            ADM2_EN_options_str  += '<option value="Harare Rural">Harare Rural</option>';
+            ADM2_EN_options_str  += '<option value="Hurungwe">Hurungwe</option>';
+            ADM2_EN_options_str  += '<option value="Hwange">Hwange</option>';
+            ADM2_EN_options_str  += '<option value="Hwange Urban">Hwange Urban</option>';
+            ADM2_EN_options_str  += '<option value="Hwedza">Hwedza</option>';
+            ADM2_EN_options_str  += '<option value="Insiza">Insiza</option>';
+            ADM2_EN_options_str  += '<option value="Kadoma Urban">Kadoma Urban</option>';
+            ADM2_EN_options_str  += '<option value="Kariba">Kariba</option>';
+            ADM2_EN_options_str  += '<option value="Kariba Urban">Kariba Urban</option>';
+            ADM2_EN_options_str  += '<option value="Karoi">Karoi</option>';
+            ADM2_EN_options_str  += '<option value="Kwekwe">Kwekwe</option>';
+            ADM2_EN_options_str  += '<option value="Kwekwe Urban">Kwekwe Urban</option>';
+            ADM2_EN_options_str  += '<option value="Lupane">Lupane</option>';
+            ADM2_EN_options_str  += '<option value="Makonde">Makonde</option>';
+            ADM2_EN_options_str  += '<option value="Makoni">Makoni</option>';
+            ADM2_EN_options_str  += '<option value="Mangwe">Mangwe</option>';
+            ADM2_EN_options_str  += '<option value="Marondera">Marondera</option>';
+            ADM2_EN_options_str  += '<option value="Marondera Urban">Marondera Urban</option>';
+            ADM2_EN_options_str  += '<option value="Masvingo">Masvingo</option>';
+            ADM2_EN_options_str  += '<option value="Masvingo Urban">Masvingo Urban</option>';
+            ADM2_EN_options_str  += '<option value="Matobo">Matobo</option>';
+            ADM2_EN_options_str  += '<option value="Mazowe">Mazowe</option>';
+            ADM2_EN_options_str  += '<option value="Mberengwa">Mberengwa</option>';
+            ADM2_EN_options_str  += '<option value="Mbire">Mbire</option>';
+            ADM2_EN_options_str  += '<option value="Mhondoro-Ngezi">Mhondoro-Ngezi</option>';
+            ADM2_EN_options_str  += '<option value="Mount Darwin">Mount Darwin</option>';
+            ADM2_EN_options_str  += '<option value="Mudzi">Mudzi</option>';
+            ADM2_EN_options_str  += '<option value="Murehwa">Murehwa</option>';
+            ADM2_EN_options_str  += '<option value="Mutare">Mutare</option>';
+            ADM2_EN_options_str  += '<option value="Mutare Urban">Mutare Urban</option>';
+            ADM2_EN_options_str  += '<option value="Mutasa">Mutasa</option>';
+            ADM2_EN_options_str  += '<option value="Mutoko">Mutoko</option>';
+            ADM2_EN_options_str  += '<option value="Mvurwi">Mvurwi</option>';
+            ADM2_EN_options_str  += '<option value="Mwenezi">Mwenezi</option>';
+            ADM2_EN_options_str  += '<option value="Nkayi">Nkayi</option>';
+            ADM2_EN_options_str  += '<option value="Norton">Norton</option>';
+            ADM2_EN_options_str  += '<option value="Nyanga">Nyanga</option>';
+            ADM2_EN_options_str  += '<option value="Plumtree">Plumtree</option>';
+            ADM2_EN_options_str  += '<option value="Redcliff">Redcliff</option>';
+            ADM2_EN_options_str  += '<option value="Rusape">Rusape</option>';
+            ADM2_EN_options_str  += '<option value="Rushinga">Rushinga</option>';
+            ADM2_EN_options_str  += '<option value="Ruwa">Ruwa</option>';
+            ADM2_EN_options_str  += '<option value="Sanyati">Sanyati</option>';
+            ADM2_EN_options_str  += '<option value="Seke">Seke</option>';
+            ADM2_EN_options_str  += '<option value="Shamva">Shamva</option>';
+            ADM2_EN_options_str  += '<option value="Shurugwi">Shurugwi</option>';
+            ADM2_EN_options_str  += '<option value="Shurugwi Town">Shurugwi Town</option>';
+            ADM2_EN_options_str  += '<option value="Tsholotsho">Tsholotsho</option>';
+            ADM2_EN_options_str  += '<option value="Umguza">Umguza</option>';
+            ADM2_EN_options_str  += '<option value="Umzingwane">Umzingwane</option>';
+            ADM2_EN_options_str  += '<option value="Uzumba Maramba Pfungwe">Uzumba Maramba Pfungwe</option>';
+            ADM2_EN_options_str  += '<option value="Victoria Falls">Victoria Falls</option>';
+            ADM2_EN_options_str  += '<option value="Zaka">Zaka</option>';
+            ADM2_EN_options_str  += '<option value="Zvimba">Zvimba</option>';
+            ADM2_EN_options_str  += '<option value="Zvishavane">Zvishavane</option>';
+            ADM2_EN_options_str  += '<option value="Zvishavane Urban">Zvishavane Urban</option>';
+            sel_ADM2_EN.innerHTML = ADM2_EN_options_str;
+            div_ADM2_EN.appendChild(sel_ADM2_EN);
+            var lab_ADM2_EN = document.createElement('div');
+            lab_ADM2_EN.innerHTML = 'ADM2_EN';
+            lab_ADM2_EN.className = 'filterlabel';
+            div_ADM2_EN.appendChild(lab_ADM2_EN);
+            var reset_ADM2_EN = document.createElement('div');
+            reset_ADM2_EN.innerHTML = 'clear filter';
+            reset_ADM2_EN.className = 'filterlabel';
+            reset_ADM2_EN.onclick = function() {
+                var options = document.getElementById("sel_ADM2_EN").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_ADM2_EN.appendChild(reset_ADM2_EN);
+        </script>
+    </body>
+</html>
